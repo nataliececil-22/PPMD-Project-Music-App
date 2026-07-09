@@ -5,6 +5,7 @@ const CONFIG = {
   city: "Nashville, TN",
   daysAhead: 7,       // change to expand/shrink the search window
   concurrency: 3,     // max simultaneous API calls — raise if your plan allows more
+  apiKey: "",         // paste your Anthropic API key here
 };
 
 const VENUE_LIST = [
@@ -634,7 +635,7 @@ Each item: { "date": "YYYY-MM-DD", "time": "8:00 PM", "artist": "Name", "venue":
 
     const searchResponse = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "x-api-key": CONFIG.apiKey, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
       body: JSON.stringify({
         model: "claude-sonnet-4-6",
         max_tokens: 1024,
@@ -663,7 +664,7 @@ Each item: { "date": "YYYY-MM-DD", "time": "8:00 PM", "artist": "Name", "venue":
 
     const formatResponse = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "x-api-key": CONFIG.apiKey, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
       body: JSON.stringify({
         model: "claude-sonnet-4-6",
         max_tokens: 1024,
