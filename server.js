@@ -33,7 +33,7 @@ app.post("/api/anthropic", async (req, res) => {
 // Serve the built React app
 const distPath = join(__dirname, "dist");
 app.use(express.static(distPath));
-app.get("*", (_req, res) => res.sendFile(join(distPath, "index.html")));
+app.get("/{*path}", (_req, res) => res.sendFile(join(distPath, "index.html")));
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`App running at http://localhost:${PORT}`));
