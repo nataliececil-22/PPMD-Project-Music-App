@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 
 // ─── CONFIG (easy to edit) ────────────────────────────────────────────────────
 const CONFIG = {
@@ -61,7 +61,7 @@ const VENUE_LIST = [
   { name: "Williamson County Performing Arts Center", area: "Greater Nashville", calendarUrl: "https://www.wcpac.org/events" },
 ];
 
-const AREAS = ["All Areas", ...Array.from(new Set(VENUE_LIST.map((v) => v.area)))];
+const AREAS = Array.from(new Set(VENUE_LIST.map((v) => v.area)));
 
 // ─── MOCK DATA (for previewing the layout without a live API call) ─────────────
 function getMockEvents() {
@@ -240,6 +240,63 @@ const styles = `
     outline: none;
   }
   .area-select:focus { border-color: #2E7D5E; box-shadow: 0 0 0 2px rgba(46,125,94,0.15); }
+
+  /* ── Multi-select area picker ── */
+  .multiselect-wrapper { position: relative; }
+  .multiselect-trigger {
+    display: flex; align-items: center; gap: 8px;
+    background: #F4F1EC;
+    color: #1C1917;
+    border: 1px solid #C8C2B8;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 13px;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    outline: none;
+    white-space: nowrap;
+    min-width: 160px;
+    user-select: none;
+  }
+  .multiselect-trigger:focus,
+  .multiselect-trigger.open { border-color: #2E7D5E; box-shadow: 0 0 0 2px rgba(46,125,94,0.15); }
+  .multiselect-trigger .trigger-arrow { margin-left: auto; font-size: 10px; color: #8A8480; transition: transform 0.15s; }
+  .multiselect-trigger.open .trigger-arrow { transform: rotate(180deg); }
+  .multiselect-badge {
+    background: #2E7D5E; color: #fff;
+    border-radius: 3px; padding: 1px 6px;
+    font-size: 11px; font-weight: 600;
+  }
+  .multiselect-dropdown {
+    position: absolute; top: calc(100% + 4px); left: 0; z-index: 100;
+    background: #fff;
+    border: 1px solid #DDD8D0;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(28,43,58,0.14);
+    min-width: 220px;
+    max-height: 320px;
+    overflow-y: auto;
+    padding: 6px 0;
+  }
+  .multiselect-option {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.1s;
+    color: #1C1917;
+  }
+  .multiselect-option:hover { background: #F4F1EC; }
+  .multiselect-option input[type="checkbox"] {
+    accent-color: #2E7D5E;
+    width: 14px; height: 14px; cursor: pointer; flex-shrink: 0;
+  }
+  .multiselect-divider {
+    height: 1px; background: #EDE9E2; margin: 4px 0;
+  }
+  .multiselect-all {
+    font-weight: 600; color: #2E7D5E;
+  }
 
   .date-range-badge {
     font-family: 'JetBrains Mono', monospace;
@@ -453,7 +510,9 @@ export default function App() {
   const [events, setEvents] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [selectedArea, setSelectedArea] = useState("All Areas");
+  const [selectedAreas, setSelectedAreas] = useState(new Set()); // empty = All Areas
+  const [areaDropdownOpen, setAreaDropdownOpen] = useState(false);
+  const areaDropdownRef = useRef(null);
   const [isMock, setIsMock] = useState(false);
   const [lastSearched, setLastSearched] = useState(null);
   const [daysAhead, setDaysAhead] = useState(CONFIG.daysAhead);
@@ -465,6 +524,17 @@ export default function App() {
   const [progress, setProgress] = useState({ done: 0, total: 0 });
   const [storageLoading, setStorageLoading] = useState(true);
   const [fromStorage, setFromStorage] = useState(false);
+
+  // Close area dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (areaDropdownRef.current && !areaDropdownRef.current.contains(e.target)) {
+        setAreaDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // On mount: check window.storage for this week's cached results.
   // STORAGE_KEY changes every Monday so stale data is never shown.
@@ -495,9 +565,9 @@ export default function App() {
 
   const { start, end, label } = getDateRange(daysAhead);
 
-  // Cache key includes the area so a per-area search is stored separately
-  // from an all-areas search.
-  const cacheKey = `${start.toISOString().split("T")[0]}|${daysAhead}|${selectedArea}`;
+  const isAllAreas = selectedAreas.size === 0;
+  const areaKey = isAllAreas ? "all" : [...selectedAreas].sort().join(",");
+  const cacheKey = `${start.toISOString().split("T")[0]}|${daysAhead}|${areaKey}`;
 
   const filteredEvents = useMemo(() => {
     if (!events) return null;
@@ -506,10 +576,10 @@ export default function App() {
     const endStr = toDateStr(end);
     return events.filter((ev) => {
       if (ev.date < startStr || ev.date > endStr) return false;
-      if (selectedArea !== "All Areas" && ev.area !== selectedArea) return false;
+      if (!isAllAreas && !selectedAreas.has(ev.area)) return false;
       return true;
     });
-  }, [events, selectedArea, start, end]);
+  }, [events, selectedAreas, isAllAreas, start, end]);
 
   const grouped = useMemo(() => (filteredEvents ? groupByDay(filteredEvents) : []), [filteredEvents]);
 
@@ -628,10 +698,10 @@ Each item: { "date": "YYYY-MM-DD", "time": "8:00 PM", "artist": "Name", "venue":
     setIsMock(false);
     setProgress({ done: 0, total: 0 });
 
-    // Flat list of venues to search — scoped to selected area if one is chosen
-    const venuesToSearch = selectedArea === "All Areas"
+    // Flat list of venues to search — scoped to selected areas if any chosen
+    const venuesToSearch = isAllAreas
       ? VENUE_LIST
-      : VENUE_LIST.filter((v) => v.area === selectedArea);
+      : VENUE_LIST.filter((v) => selectedAreas.has(v.area));
 
     const startStr = start.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
     const endStr = end.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
@@ -766,9 +836,48 @@ Each item: { "date": "YYYY-MM-DD", "time": "8:00 PM", "artist": "Name", "venue":
             <option value={13}>Next 13 days</option>
             <option value={14}>Next 14 days</option>
           </select>
-          <select className="area-select" value={selectedArea} onChange={(e) => setSelectedArea(e.target.value)}>
-            {AREAS.map((a) => <option key={a} value={a}>{a}</option>)}
-          </select>
+          <div className="multiselect-wrapper" ref={areaDropdownRef}>
+            <div
+              className={`multiselect-trigger${areaDropdownOpen ? " open" : ""}`}
+              onClick={() => setAreaDropdownOpen((o) => !o)}
+              tabIndex={0}
+              onKeyDown={(e) => e.key === "Enter" && setAreaDropdownOpen((o) => !o)}
+            >
+              {isAllAreas ? "All Areas" : `Areas`}
+              {!isAllAreas && <span className="multiselect-badge">{selectedAreas.size}</span>}
+              <span className="trigger-arrow">▼</span>
+            </div>
+            {areaDropdownOpen && (
+              <div className="multiselect-dropdown">
+                <label className="multiselect-option multiselect-all">
+                  <input
+                    type="checkbox"
+                    checked={isAllAreas}
+                    onChange={() => setSelectedAreas(new Set())}
+                  />
+                  All Areas
+                </label>
+                <div className="multiselect-divider" />
+                {AREAS.map((area) => (
+                  <label key={area} className="multiselect-option">
+                    <input
+                      type="checkbox"
+                      checked={selectedAreas.has(area)}
+                      onChange={() => {
+                        setSelectedAreas((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(area)) next.delete(area);
+                          else next.add(area);
+                          return next;
+                        });
+                      }}
+                    />
+                    {area}
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
           <div className="btn-group">
             <button className="btn btn-secondary" onClick={loadMockData} disabled={loading}>
               Preview Sample Data
@@ -806,7 +915,7 @@ Each item: { "date": "YYYY-MM-DD", "time": "8:00 PM", "artist": "Name", "venue":
             <div className="state-screen">
               <div className="loading-dots"><span /><span /><span /></div>
               <div className="state-title">
-                Searching {selectedArea === "All Areas" ? `All ${VENUE_LIST.length} Venues` : selectedArea}
+                Searching {isAllAreas ? `All ${VENUE_LIST.length} Venues` : [...selectedAreas].join(", ")}
               </div>
               {progress.total > 0 && (
                 <>
@@ -845,7 +954,7 @@ Each item: { "date": "YYYY-MM-DD", "time": "8:00 PM", "artist": "Name", "venue":
             <div className="state-screen">
               <div className="state-icon">🎵</div>
               <div className="state-title">Light Week</div>
-              <div className="state-body">No confirmed events found for the selected area and time window. Try "All Areas" or check back closer to the dates.</div>
+              <div className="state-body">No confirmed events found for the selected area(s) and time window. Try "All Areas" or check back closer to the dates.</div>
             </div>
           )}
 
