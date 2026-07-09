@@ -760,7 +760,8 @@ Each item: { "date": "YYYY-MM-DD", "time": "8:00 PM", "artist": "Name", "venue":
         });
 
       if (enriched.length === 0 && failedVenues.length === venuesToSearch.length) {
-        throw new Error("All venue searches failed. Please try again.");
+        const firstReason = failedVenues[0]?.match(/\((.+)\)$/)?.[1] || "unknown error";
+        throw new Error(`All venue searches failed. First error: ${firstReason}. Check that your ANTHROPIC_API_KEY is set correctly in .env and the server was restarted after editing it.`);
       }
 
       setEvents(enriched);
