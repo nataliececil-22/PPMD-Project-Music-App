@@ -5,7 +5,7 @@ const CONFIG = {
   city: "Nashville, TN",
   daysAhead: 7,       // change to expand/shrink the search window
   concurrency: 3,     // max simultaneous API calls — raise if your plan allows more
-  apiUrl: "http://localhost:3001/api/anthropic",
+  apiUrl: "/api/anthropic",
 };
 
 const VENUE_LIST = [

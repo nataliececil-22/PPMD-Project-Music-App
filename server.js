@@ -1,11 +1,14 @@
 import "dotenv/config";
 import express from "express";
-import cors from "cors";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const app = express();
-app.use(cors({ origin: "http://localhost:5173" }));
 app.use(express.json({ limit: "2mb" }));
 
+// API proxy — key stays on the server, never sent to the browser
 app.post("/api/anthropic", async (req, res) => {
   if (!process.env.ANTHROPIC_API_KEY) {
     return res.status(500).json({ error: { message: "ANTHROPIC_API_KEY not set in .env" } });
@@ -27,5 +30,10 @@ app.post("/api/anthropic", async (req, res) => {
   }
 });
 
-const PORT = 3001;
-app.listen(PORT, () => console.log(`Proxy running at http://localhost:${PORT}`));
+// Serve the built React app
+const distPath = join(__dirname, "dist");
+app.use(express.static(distPath));
+app.get("*", (_req, res) => res.sendFile(join(distPath, "index.html")));
+
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, () => console.log(`App running at http://localhost:${PORT}`));
