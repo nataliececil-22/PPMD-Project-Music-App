@@ -5,7 +5,7 @@ const CONFIG = {
   city: "Nashville, TN",
   daysAhead: 7,       // change to expand/shrink the search window
   concurrency: 3,     // max simultaneous API calls — raise if your plan allows more
-  apiKey: "",         // paste your Anthropic API key here
+  apiUrl: "http://localhost:3001/api/anthropic",
 };
 
 const VENUE_LIST = [
@@ -633,9 +633,9 @@ Respond with ONLY a valid JSON array. Start with [ and end with ]. No prose, no 
 
 Each item: { "date": "YYYY-MM-DD", "time": "8:00 PM", "artist": "Name", "venue": "${venue.name}", "venueUrl": "https://...", "area": "${venue.area}", "genre": "Genre", "cost": "$15", "ageRestriction": "All Ages or null", "soldOut": false, "notes": "text or null" }`;
 
-    const searchResponse = await fetch("https://api.anthropic.com/v1/messages", {
+    const searchResponse = await fetch(CONFIG.apiUrl, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "x-api-key": CONFIG.apiKey, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "claude-sonnet-4-6",
         max_tokens: 1024,
@@ -662,9 +662,9 @@ Each item: { "date": "YYYY-MM-DD", "time": "8:00 PM", "artist": "Name", "venue":
     // Format pass — only fires if Step 1 returned prose
     if (!rawText.trim()) return [];
 
-    const formatResponse = await fetch("https://api.anthropic.com/v1/messages", {
+    const formatResponse = await fetch(CONFIG.apiUrl, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "x-api-key": CONFIG.apiKey, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "claude-sonnet-4-6",
         max_tokens: 1024,
