@@ -44,7 +44,6 @@ const VENUE_LIST = [
   { name: "Kimbro's Pickin' Parlor", area: "Franklin & Williamson Co.", calendarUrl: "https://www.legendarykimbros.com/events-1" },
   { name: "Puckett's Gro. & Restaurant (Franklin)", area: "Franklin & Williamson Co.", calendarUrl: "https://www.puckettsgro.com/events" },
   { name: "Gray's on Main", area: "Franklin & Williamson Co.", calendarUrl: "https://www.graysonmain.com/events" },
-  { name: "Americana Taphouse (Franklin)", area: "Franklin & Williamson Co.", calendarUrl: "https://www.americanataphouse.com/events" },
   { name: "The Harpeth Hotel", area: "Franklin & Williamson Co.", calendarUrl: "https://www.theharpethhotel.com/events" },
   { name: "Liberty Hall at The Factory at Franklin", area: "Franklin & Williamson Co.", calendarUrl: "https://www.factoryatfranklin.com/events" },
   { name: "Mockingbird Theatre (The Factory)", area: "Franklin & Williamson Co.", calendarUrl: "https://www.factoryatfranklin.com/events" },
